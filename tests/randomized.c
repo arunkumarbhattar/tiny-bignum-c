@@ -26,40 +26,46 @@ int main(int argc, char** argv)
   printf("expected = %s \n", argv[4]);
 */
 
-  struct bn a, b, c, res;
+  _TPtr<_T_bn> a = NULL, b = NULL, c = NULL, res = NULL;
+  a = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  b = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  c = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  res = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
 
-  bignum_init(&a);
-  bignum_init(&b);
-  bignum_init(&c);
-  bignum_init(&res);
-  bignum_from_string(&a, argv[2], strlen(argv[2]));
-  bignum_from_string(&b, argv[3], strlen(argv[3]));
-  bignum_from_string(&c, argv[4], strlen(argv[4]));
+  bignum_init(a);
+  bignum_init(b);
+  bignum_init(c);
+  bignum_init(res);
+  bignum_from_string(a, argv[2], strlen(argv[2]));
+  bignum_from_string(b, argv[3], strlen(argv[3]));
+  bignum_from_string(c, argv[4], strlen(argv[4]));
 
-  struct bn a_before, b_before;
-  bignum_assign(&a_before, &a);
-  bignum_assign(&b_before, &b);
+  _TPtr<_T_bn> a_before = NULL, b_before = NULL;
+  a_before = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  b_before = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  bignum_assign(a_before, a);
+  bignum_assign(b_before, b);
 
 
   switch (oper)
   {
-    case ADD:   bignum_add(&a, &b, &res);   break;
-    case SUB:   bignum_sub(&a, &b, &res);   break;
-    case MUL:   bignum_mul(&a, &b, &res);   break;
-    case DIV:   bignum_div(&a, &b, &res);   break;
-    case AND:   bignum_and(&a, &b, &res);   break;
-    case OR:    bignum_or (&a, &b, &res);   break;
-    case XOR:   bignum_xor(&a, &b, &res);   break;
-    case POW:   bignum_pow(&a, &b, &res);   break;
-    case MOD:   bignum_mod(&a, &b, &res);   break;
-    case ISQRT: bignum_isqrt(&a, &res);     break;
+    case ADD:   bignum_add(a, b, res);   break;
+    case SUB:   bignum_sub(a, b, res);   break;
+    case MUL:   bignum_mul(a, b, res);   break;
+    case DIV:   bignum_div(a, b, res);   break;
+    case AND:   bignum_and(a, b, res);   break;
+    case OR:    bignum_or (a, b, res);   break;
+    case XOR:   bignum_xor(a, b, res);   break;
+    case POW:   bignum_pow(a, b, res);   break;
+    case MOD:   bignum_mod(a, b, res);   break;
+    case ISQRT: bignum_isqrt(a, res);     break;
     case RSHFT:
     {
-      bignum_rshift(&a, &res, bignum_to_int(&b));
+      bignum_rshift(a, res, bignum_to_int(b));
     } break;
     case LSHFT: 
     {
-      bignum_lshift(&a, &res, bignum_to_int(&b));
+      bignum_lshift(a, res, bignum_to_int(b));
     } break;
     
 
@@ -68,22 +74,29 @@ int main(int argc, char** argv)
       assert(0); 
   }
 
-  int cmp_result = (bignum_cmp(&res, &c) == EQUAL);
+  int cmp_result = (bignum_cmp(res, c) == EQUAL);
 
   if (!cmp_result)
   {
     char buf[8192];
-    bignum_to_string(&res, buf, sizeof(buf));
+    bignum_to_string(res, buf, sizeof(buf));
     printf("\ngot %s\n", buf);
-    printf(" a  = %d \n", bignum_to_int(&a));
-    printf(" b  = %d \n", bignum_to_int(&b));
-    printf("res = %d \n", bignum_to_int(&res));
+    printf(" a  = %d \n", bignum_to_int(a));
+    printf(" b  = %d \n", bignum_to_int(b));
+    printf("res = %d \n", bignum_to_int(res));
     printf("\n");
     return 1;
   }
 
-  assert(bignum_cmp(&a_before, &a) == EQUAL);
-  assert(bignum_cmp(&b_before, &b) == EQUAL);
+  assert(bignum_cmp(a_before, a) == EQUAL);
+  assert(bignum_cmp(b_before, b) == EQUAL);
+
+    t_free(a);
+    t_free(b);
+    t_free(c);
+    t_free(res);
+    t_free(a_before);
+    t_free(b_before);
 
   return 0;
 }

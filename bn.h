@@ -22,8 +22,9 @@ There may well be room for performance-optimizations and improvements.
 
 #include <stdint.h>
 #include <assert.h>
-
-
+#include <stdlib_tainted.h>
+#include <string_tainted.h>
+#include <stdio_tainted.h>
 /* This macro defines the word size in bytes of the array that constitues the big-number data structure. */
 #ifndef WORD_SIZE
   #define WORD_SIZE 4
@@ -74,11 +75,11 @@ There may well be room for performance-optimizations and improvements.
 
 
 /* Data-holding structure: array of DTYPEs */
-struct bn
+typedef Tstruct bn
 {
-  DTYPE array[BN_ARRAY_SIZE];
-};
-
+  _TPtr<DTYPE> array;
+}_T_bn;
+//gotta malloc this --> [BN_ARRAY_SIZE]
 
 
 /* Tokens returned by bignum_cmp() for value comparison */
@@ -87,35 +88,35 @@ enum { SMALLER = -1, EQUAL = 0, LARGER = 1 };
 
 
 /* Initialization functions: */
-void bignum_init(struct bn* n);
-void bignum_from_int(struct bn* n, DTYPE_TMP i);
-int  bignum_to_int(struct bn* n);
-void bignum_from_string(struct bn* n, char* str, int nbytes);
-void bignum_to_string(struct bn* n, char* str, int maxsize);
+void bignum_init(_TPtr<_T_bn> n);
+void bignum_from_int(_TPtr<_T_bn> n, DTYPE_TMP i);
+int  bignum_to_int(_TPtr<_T_bn> n);
+void bignum_from_string(_TPtr<_T_bn> n, char* str, int nbytes);
+void bignum_to_string(_TPtr<_T_bn> n, char* str, int maxsize);
 
 /* Basic arithmetic operations: */
-void bignum_add(struct bn* a, struct bn* b, struct bn* c); /* c = a + b */
-void bignum_sub(struct bn* a, struct bn* b, struct bn* c); /* c = a - b */
-void bignum_mul(struct bn* a, struct bn* b, struct bn* c); /* c = a * b */
-void bignum_div(struct bn* a, struct bn* b, struct bn* c); /* c = a / b */
-void bignum_mod(struct bn* a, struct bn* b, struct bn* c); /* c = a % b */
-void bignum_divmod(struct bn* a, struct bn* b, struct bn* c, struct bn* d); /* c = a/b, d = a%b */
+void bignum_add(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c); /* c = a + b */
+void bignum_sub(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c); /* c = a - b */
+void bignum_mul(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c); /* c = a * b */
+void bignum_div(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c); /* c = a / b */
+void bignum_mod(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c); /* c = a % b */
+void bignum_divmod(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c, _TPtr<_T_bn> d); /* c = a/b, d = a%b */
 
 /* Bitwise operations: */
-void bignum_and(struct bn* a, struct bn* b, struct bn* c); /* c = a & b */
-void bignum_or(struct bn* a, struct bn* b, struct bn* c);  /* c = a | b */
-void bignum_xor(struct bn* a, struct bn* b, struct bn* c); /* c = a ^ b */
-void bignum_lshift(struct bn* a, struct bn* b, int nbits); /* b = a << nbits */
-void bignum_rshift(struct bn* a, struct bn* b, int nbits); /* b = a >> nbits */
+void bignum_and(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c); /* c = a & b */
+void bignum_or(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c);  /* c = a | b */
+void bignum_xor(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c); /* c = a ^ b */
+void bignum_lshift(_TPtr<_T_bn> a, _TPtr<_T_bn> b, int nbits); /* b = a << nbits */
+void bignum_rshift(_TPtr<_T_bn> a, _TPtr<_T_bn> b, int nbits); /* b = a >> nbits */
 
 /* Special operators and comparison */
-int  bignum_cmp(struct bn* a, struct bn* b);               /* Compare: returns LARGER, EQUAL or SMALLER */
-int  bignum_is_zero(struct bn* n);                         /* For comparison with zero */
-void bignum_inc(struct bn* n);                             /* Increment: add one to n */
-void bignum_dec(struct bn* n);                             /* Decrement: subtract one from n */
-void bignum_pow(struct bn* a, struct bn* b, struct bn* c); /* Calculate a^b -- e.g. 2^10 => 1024 */
-void bignum_isqrt(struct bn* a, struct bn* b);             /* Integer square root -- e.g. isqrt(5) => 2*/
-void bignum_assign(struct bn* dst, struct bn* src);        /* Copy src into dst -- dst := src */
+int  bignum_cmp(_TPtr<_T_bn> a, _TPtr<_T_bn> b);               /* Compare: returns LARGER, EQUAL or SMALLER */
+int  bignum_is_zero(_TPtr<_T_bn> n);                         /* For comparison with zero */
+void bignum_inc(_TPtr<_T_bn> n);                             /* Increment: add one to n */
+void bignum_dec(_TPtr<_T_bn> n);                             /* Decrement: subtract one from n */
+void bignum_pow(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c); /* Calculate a^b -- e.g. 2^10 => 1024 */
+void bignum_isqrt(_TPtr<_T_bn> a, _TPtr<_T_bn> b);             /* Integer square root -- e.g. isqrt(5) => 2*/
+void bignum_assign(_TPtr<_T_bn> dst, _TPtr<_T_bn> src);        /* Copy src into dst -- dst := src */
 
 
 #endif /* #ifndef __BIGNUM_H__ */

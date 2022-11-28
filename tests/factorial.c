@@ -34,12 +34,13 @@
 
 
 
-void factorial(struct bn* n, struct bn* res)
+void factorial(_TPtr<_T_bn> n, _TPtr<_T_bn> res)
 {
-  struct bn tmp;
+  _TPtr<_T_bn> tmp = NULL;
+  tmp = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
 
   /* Copy n -> tmp */
-  bignum_assign(&tmp, n);
+  bignum_assign(tmp, n);
 
   /* Decrement n by one */
   bignum_dec(n);
@@ -48,31 +49,35 @@ void factorial(struct bn* n, struct bn* res)
   while (!bignum_is_zero(n))
   {
     /* res = tmp * n */
-    bignum_mul(&tmp, n, res);
+    bignum_mul(tmp, n, res);
 
     /* n -= 1 */
     bignum_dec(n);
     
     /* tmp = res */
-    bignum_assign(&tmp, res);
+    bignum_assign(tmp, res);
   }
 
   /* res = tmp */
-  bignum_assign(res, &tmp);
+  bignum_assign(res, tmp);
+  t_free(tmp);
 }
 
 
 int main()
 {
-  struct bn num;
-  struct bn result;
+  _TPtr<_T_bn> num = NULL;
+  _TPtr<_T_bn> result = NULL;
+  num = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  result = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
   char buf[8192];
 
-  bignum_from_int(&num, 100);
-  factorial(&num, &result);
-  bignum_to_string(&result, buf, sizeof(buf));
+  bignum_from_int(num, 100);
+  factorial(num, result);
+  bignum_to_string(result, buf, sizeof(buf));
   printf("factorial(100) using bignum = %s\n", buf);
-
+  t_free(num);
+  t_free(result);
   return 0;
 }
 

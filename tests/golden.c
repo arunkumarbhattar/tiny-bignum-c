@@ -187,7 +187,12 @@ const int ntests = sizeof(oracle) / sizeof(*oracle);
 
 int main()
 {
-  struct bn sa, sb, sc, sd;
+  _TPtr<_T_bn> sa = NULL, sb = NULL, sc = NULL, sd = NULL;
+  sa = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  sb = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  sc = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  sd = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+
   uint32_t ia, ib, ic;
   char op;
   char buf[8192];
@@ -206,32 +211,32 @@ int main()
     ic = oracle[i].c;
 
     /* Initialize big-num structures: */
-    bignum_init(&sd); /* init result holder */
-    bignum_from_int(&sa, ia);
-    bignum_from_int(&sb, ib);
-    bignum_from_int(&sc, ic);
+    bignum_init(sd); /* init result holder */
+    bignum_from_int(sa, ia);
+    bignum_from_int(sb, ib);
+    bignum_from_int(sc, ic);
 
     /* Perform calculation: */
     switch (op)
     {
-      case '+': bignum_add(&sa, &sb, &sd);   break;
-      case '-': bignum_sub(&sa, &sb, &sd);   break;
-      case '*': bignum_mul(&sa, &sb, &sd);   break;
-      case '/': bignum_div(&sa, &sb, &sd);   break;
-      case '%': bignum_mod(&sa, &sb, &sd);   break;
-      case '&': bignum_and(&sa, &sb, &sd);   break;
-      case '|': bignum_or (&sa, &sb, &sd);   break;
-      case '^': bignum_xor(&sa, &sb, &sd);   break;
-      case 'p': bignum_pow(&sa, &sb, &sd);   break;
-      case '<': bignum_lshift(&sa, &sd, ib); break;
-      case '>': bignum_rshift(&sa, &sd, ib); break;
+      case '+': bignum_add(sa, sb, sd);   break;
+      case '-': bignum_sub(sa, sb, sd);   break;
+      case '*': bignum_mul(sa, sb, sd);   break;
+      case '/': bignum_div(sa, sb, sd);   break;
+      case '%': bignum_mod(sa, sb, sd);   break;
+      case '&': bignum_and(sa, sb, sd);   break;
+      case '|': bignum_or (sa, sb, sd);   break;
+      case '^': bignum_xor(sa, sb, sd);   break;
+      case 'p': bignum_pow(sa, sb, sd);   break;
+      case '<': bignum_lshift(sa, sd, ib); break;
+      case '>': bignum_rshift(sa, sd, ib); break;
 
       /* Crash program if operator is unsupported. */
-      default:  require(0, "default switch-case hit");
+      //default:  require(0, "default switch-case hit");
     }
 
     /* Verify validity: */
-    test_passed = (bignum_cmp(&sc, &sd) == EQUAL);
+    test_passed = (bignum_cmp(sc, sd) == EQUAL);
 
     /* Print status: */
     if (op == 'p')
@@ -253,13 +258,13 @@ int main()
     }
     else
     {
-      bignum_to_string(&sa, buf, sizeof(buf));
+      bignum_to_string(sa, buf, sizeof(buf));
       printf("    a = %s \n", buf);
-      bignum_to_string(&sb, buf, sizeof(buf));
+      bignum_to_string(sb, buf, sizeof(buf));
       printf("    b = %s \n", buf);
-      bignum_to_string(&sc, buf, sizeof(buf));
+      bignum_to_string(sc, buf, sizeof(buf));
       printf("    c = %s \n", buf);
-      bignum_to_string(&sd, buf, sizeof(buf));
+      bignum_to_string(sd, buf, sizeof(buf));
       printf("    d = %s \n", buf);
       printf("\n");
     }
@@ -269,7 +274,14 @@ int main()
 
 
   printf("\n");
-
+t_free(sa->array);
+t_free(sb->array);
+t_free(sc->array);
+t_free(sd->array);
+  t_free(sa);
+    t_free(sb);
+    t_free(sc);
+    t_free(sd);
   return (ntests - npassed); /* 0 if all tests passed */
 }
 

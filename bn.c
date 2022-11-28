@@ -26,18 +26,24 @@ There may well be room for performance-optimizations and improvements.
 
 
 /* Functions for shifting number in-place. */
-static void _lshift_one_bit(struct bn* a);
-static void _rshift_one_bit(struct bn* a);
-static void _lshift_word(struct bn* a, int nwords);
-static void _rshift_word(struct bn* a, int nwords);
+static void _lshift_one_bit(_TPtr<_T_bn> a);
+static void _rshift_one_bit(_TPtr<_T_bn> a);
+static void _lshift_word(_TPtr<_T_bn> a, int nwords);
+static void _rshift_word(_TPtr<_T_bn> a, int nwords);
 
 
 
 /* Public / Exported functions. */
-void bignum_init(struct bn* n)
+void bignum_init(_TPtr<_T_bn> n)
 {
+    if (n == NULL) {
+        n = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+    }
   require(n, "n is null");
-
+  //sometimes you may  pass the same structure to bignum_init
+  //hence check for null before you init
+  if (n->array == NULL)
+    n->array = (_TPtr<DTYPE>)t_malloc(BN_ARRAY_SIZE * sizeof(DTYPE));
   int i;
   for (i = 0; i < BN_ARRAY_SIZE; ++i)
   {
@@ -46,7 +52,7 @@ void bignum_init(struct bn* n)
 }
 
 
-void bignum_from_int(struct bn* n, DTYPE_TMP i)
+void bignum_from_int(_TPtr<_T_bn> n, DTYPE_TMP i)
 {
   require(n, "n is null");
 
@@ -72,7 +78,7 @@ void bignum_from_int(struct bn* n, DTYPE_TMP i)
 }
 
 
-int bignum_to_int(struct bn* n)
+int bignum_to_int(_TPtr<_T_bn> n)
 {
   require(n, "n is null");
 
@@ -95,7 +101,7 @@ int bignum_to_int(struct bn* n)
 }
 
 
-void bignum_from_string(struct bn* n, char* str, int nbytes)
+void bignum_from_string(_TPtr<_T_bn> n, char* str, int nbytes)
 {
   require(n, "n is null");
   require(str, "str is null");
@@ -122,7 +128,7 @@ void bignum_from_string(struct bn* n, char* str, int nbytes)
 }
 
 
-void bignum_to_string(struct bn* n, char* str, int nbytes)
+void bignum_to_string(_TPtr<_T_bn> n, char* str, int nbytes)
 {
   require(n, "n is null");
   require(str, "str is null");
@@ -135,7 +141,7 @@ void bignum_to_string(struct bn* n, char* str, int nbytes)
   /* reading last array-element "MSB" first -> big endian */
   while ((j >= 0) && (nbytes > (i + 1)))
   {
-    sprintf(&str[i], SPRINTF_FORMAT_STR, n->array[j]);
+    t_sprintf(&str[i], SPRINTF_FORMAT_STR, n->array[j]);
     i += (2 * WORD_SIZE); /* step WORD_SIZE hex-byte(s) forward in the string. */
     j -= 1;               /* step one element back in the array. */
   }
@@ -158,7 +164,7 @@ void bignum_to_string(struct bn* n, char* str, int nbytes)
 }
 
 
-void bignum_dec(struct bn* n)
+void bignum_dec(_TPtr<_T_bn> n)
 {
   require(n, "n is null");
 
@@ -180,7 +186,7 @@ void bignum_dec(struct bn* n)
 }
 
 
-void bignum_inc(struct bn* n)
+void bignum_inc(_TPtr<_T_bn> n)
 {
   require(n, "n is null");
 
@@ -202,7 +208,7 @@ void bignum_inc(struct bn* n)
 }
 
 
-void bignum_add(struct bn* a, struct bn* b, struct bn* c)
+void bignum_add(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c)
 {
   require(a, "a is null");
   require(b, "b is null");
@@ -220,7 +226,7 @@ void bignum_add(struct bn* a, struct bn* b, struct bn* c)
 }
 
 
-void bignum_sub(struct bn* a, struct bn* b, struct bn* c)
+void bignum_sub(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c)
 {
   require(a, "a is null");
   require(b, "b is null");
@@ -242,85 +248,107 @@ void bignum_sub(struct bn* a, struct bn* b, struct bn* c)
 }
 
 
-void bignum_mul(struct bn* a, struct bn* b, struct bn* c)
+void bignum_mul(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c)
 {
   require(a, "a is null");
   require(b, "b is null");
   require(c, "c is null");
 
-  struct bn row;
-  struct bn tmp;
+  _TPtr<_T_bn> row = NULL; //moving from static memory to heap --> SLOW!
+  _TPtr<_T_bn> tmp = NULL;
+  row = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  tmp = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  //memset these both to 0
+  t_memset(row, 0, sizeof(_T_bn));
+  t_memset(tmp, 0, sizeof(_T_bn));
+
   int i, j;
 
   bignum_init(c);
 
   for (i = 0; i < BN_ARRAY_SIZE; ++i)
   {
-    bignum_init(&row);
+    bignum_init(row);
 
     for (j = 0; j < BN_ARRAY_SIZE; ++j)
     {
       if (i + j < BN_ARRAY_SIZE)
       {
-        bignum_init(&tmp);
+        bignum_init(tmp);
         DTYPE_TMP intermediate = ((DTYPE_TMP)a->array[i] * (DTYPE_TMP)b->array[j]);
-        bignum_from_int(&tmp, intermediate);
-        _lshift_word(&tmp, i + j);
-        bignum_add(&tmp, &row, &row);
+        bignum_from_int(tmp, intermediate);
+        _lshift_word(tmp, i + j);
+        bignum_add(tmp, row, row);
       }
     }
-    bignum_add(c, &row, c);
+    bignum_add(c, row, c);
   }
+  t_free(row->array);
+  t_free(tmp->array);
+  t_free(row);
+  t_free(tmp);
 }
 
 
-void bignum_div(struct bn* a, struct bn* b, struct bn* c)
+void bignum_div(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c)
 {
   require(a, "a is null");
   require(b, "b is null");
   require(c, "c is null");
 
-  struct bn current;
-  struct bn denom;
-  struct bn tmp;
+  _TPtr<_T_bn> current = NULL;
+  _TPtr<_T_bn> denom = NULL;
+  _TPtr<_T_bn> tmp = NULL;
 
-  bignum_from_int(&current, 1);               // int current = 1;
-  bignum_assign(&denom, b);                   // denom = b
-  bignum_assign(&tmp, a);                     // tmp   = a
+  current = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  denom = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  tmp = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  //memset these to zero
+  t_memset(current, 0, sizeof(_T_bn));
+  t_memset(denom, 0, sizeof(_T_bn));
+  t_memset(tmp, 0, sizeof(_T_bn));
+  bignum_from_int(current, 1);               // int current = 1;
+  bignum_assign(denom, b);                   // denom = b
+  bignum_assign(tmp, a);                     // tmp   = a
+
 
   const DTYPE_TMP half_max = 1 + (DTYPE_TMP)(MAX_VAL / 2);
   bool overflow = false;
-  while (bignum_cmp(&denom, a) != LARGER)     // while (denom <= a) {
+  while (bignum_cmp(denom, a) != LARGER)     // while (denom <= a) {
   {
-    if (denom.array[BN_ARRAY_SIZE - 1] >= half_max)
+    if (denom->array[BN_ARRAY_SIZE - 1] >= half_max)
     {
       overflow = true;
       break;
     }
-    _lshift_one_bit(&current);                //   current <<= 1;
-    _lshift_one_bit(&denom);                  //   denom <<= 1;
+    _lshift_one_bit(current);                //   current <<= 1;
+    _lshift_one_bit(denom);                  //   denom <<= 1;
   }
   if (!overflow)
   {
-    _rshift_one_bit(&denom);                  // denom >>= 1;
-    _rshift_one_bit(&current);                // current >>= 1;
+    _rshift_one_bit(denom);                  // denom >>= 1;
+    _rshift_one_bit(current);                // current >>= 1;
   }
   bignum_init(c);                             // int answer = 0;
 
-  while (!bignum_is_zero(&current))           // while (current != 0)
+  while (!bignum_is_zero(current))           // while (current != 0)
   {
-    if (bignum_cmp(&tmp, &denom) != SMALLER)  //   if (dividend >= denom)
+    if (bignum_cmp(tmp, denom) != SMALLER)  //   if (dividend >= denom)
     {
-      bignum_sub(&tmp, &denom, &tmp);         //     dividend -= denom;
-      bignum_or(c, &current, c);              //     answer |= current;
+      bignum_sub(tmp, denom, tmp);         //     dividend -= denom;
+      bignum_or(c, current, c);              //     answer |= current;
     }
-    _rshift_one_bit(&current);                //   current >>= 1;
-    _rshift_one_bit(&denom);                  //   denom >>= 1;
-  }                                           // return answer;
+    _rshift_one_bit(current);                //   current >>= 1;
+    _rshift_one_bit(denom);                  //   denom >>= 1;
+  }
+  t_free(current->array); t_free(denom->array);t_free(tmp->array);
+  t_free(current);
+  t_free(denom);
+  t_free(tmp);
 }
 
 
-void bignum_lshift(struct bn* a, struct bn* b, int nbits)
+void bignum_lshift(_TPtr<_T_bn> a, _TPtr<_T_bn> b, int nbits)
 {
   require(a, "a is null");
   require(b, "b is null");
@@ -348,7 +376,7 @@ void bignum_lshift(struct bn* a, struct bn* b, int nbits)
 }
 
 
-void bignum_rshift(struct bn* a, struct bn* b, int nbits)
+void bignum_rshift(_TPtr<_T_bn> a, _TPtr<_T_bn> b, int nbits)
 {
   require(a, "a is null");
   require(b, "b is null");
@@ -377,7 +405,7 @@ void bignum_rshift(struct bn* a, struct bn* b, int nbits)
 }
 
 
-void bignum_mod(struct bn* a, struct bn* b, struct bn* c)
+void bignum_mod(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c)
 {
   /*
     Take divmod and throw away div part
@@ -386,12 +414,17 @@ void bignum_mod(struct bn* a, struct bn* b, struct bn* c)
   require(b, "b is null");
   require(c, "c is null");
 
-  struct bn tmp;
+  _TPtr<_T_bn> tmp = NULL;
 
-  bignum_divmod(a,b,&tmp,c);
+  tmp = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+    //memset this to zero
+    t_memset(tmp, 0, sizeof(_T_bn));
+  bignum_divmod(a,b,tmp,c);
+    t_free(tmp->array);
+  t_free(tmp);
 }
 
-void bignum_divmod(struct bn* a, struct bn* b, struct bn* c, struct bn* d)
+void bignum_divmod(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c, _TPtr<_T_bn> d)
 {
   /*
     Puts a%b in d
@@ -406,20 +439,24 @@ void bignum_divmod(struct bn* a, struct bn* b, struct bn* c, struct bn* d)
   require(b, "b is null");
   require(c, "c is null");
 
-  struct bn tmp;
-
+  _TPtr<_T_bn> tmp = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  //memset this to 0
+  t_memset(tmp, 0, sizeof(_T_bn));
   /* c = (a / b) */
   bignum_div(a, b, c);
 
   /* tmp = (c * b) */
-  bignum_mul(c, b, &tmp);
+  bignum_mul(c, b, tmp);
 
   /* c = a - tmp */
-  bignum_sub(a, &tmp, d);
+  bignum_sub(a, tmp, d);
+
+        t_free(tmp->array);
+  t_free(tmp);
 }
 
 
-void bignum_and(struct bn* a, struct bn* b, struct bn* c)
+void bignum_and(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c)
 {
   require(a, "a is null");
   require(b, "b is null");
@@ -433,7 +470,7 @@ void bignum_and(struct bn* a, struct bn* b, struct bn* c)
 }
 
 
-void bignum_or(struct bn* a, struct bn* b, struct bn* c)
+void bignum_or(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c)
 {
   require(a, "a is null");
   require(b, "b is null");
@@ -447,7 +484,7 @@ void bignum_or(struct bn* a, struct bn* b, struct bn* c)
 }
 
 
-void bignum_xor(struct bn* a, struct bn* b, struct bn* c)
+void bignum_xor(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c)
 {
   require(a, "a is null");
   require(b, "b is null");
@@ -461,14 +498,17 @@ void bignum_xor(struct bn* a, struct bn* b, struct bn* c)
 }
 
 
-int bignum_cmp(struct bn* a, struct bn* b)
+int bignum_cmp(_TPtr<_T_bn> a, _TPtr<_T_bn> b)
 {
   require(a, "a is null");
   require(b, "b is null");
 
+  //printf("Re-entering function\n");
   int i = BN_ARRAY_SIZE;
   do
   {
+      //print value of i
+    //t_printf("i = %d, a->array[i] = %d, b->array[i] = %d\n", i, a->array[i], b->array[i]);
     i -= 1; /* Decrement first, to start with last array element */
     if (a->array[i] > b->array[i])
     {
@@ -485,7 +525,7 @@ int bignum_cmp(struct bn* a, struct bn* b)
 }
 
 
-int bignum_is_zero(struct bn* n)
+int bignum_is_zero(_TPtr<_T_bn> n)
 {
   require(n, "n is null");
 
@@ -502,14 +542,16 @@ int bignum_is_zero(struct bn* n)
 }
 
 
-void bignum_pow(struct bn* a, struct bn* b, struct bn* c)
+void bignum_pow(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c)
 {
   require(a, "a is null");
   require(b, "b is null");
   require(c, "c is null");
 
-  struct bn tmp;
-
+  _TPtr<_T_bn> tmp = NULL;
+  tmp = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+    //memset this to 0
+    t_memset(tmp, 0, sizeof(_T_bn));
   bignum_init(c);
 
   if (bignum_cmp(b, c) == EQUAL)
@@ -519,69 +561,94 @@ void bignum_pow(struct bn* a, struct bn* b, struct bn* c)
   }
   else
   {
-    struct bn bcopy;
-    bignum_assign(&bcopy, b);
+    _TPtr<_T_bn> bcopy = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+    //memset this to 0
+    t_memset(bcopy, 0, sizeof(_T_bn));
+    bignum_assign(bcopy, b);
 
     /* Copy a -> tmp */
-    bignum_assign(&tmp, a);
+    bignum_assign(tmp, a);
 
-    bignum_dec(&bcopy);
+    bignum_dec(bcopy);
  
     /* Begin summing products: */
-    while (!bignum_is_zero(&bcopy))
+    while (!bignum_is_zero(bcopy))
     {
 
       /* c = tmp * tmp */
-      bignum_mul(&tmp, a, c);
+      bignum_mul(tmp, a, c);
       /* Decrement b by one */
-      bignum_dec(&bcopy);
+      bignum_dec(bcopy);
 
-      bignum_assign(&tmp, c);
+      bignum_assign(tmp, c);
     }
 
     /* c = tmp */
-    bignum_assign(c, &tmp);
+    bignum_assign(c, tmp);
+        t_free(bcopy->array);
+        t_free(tmp->array);
+    t_free(bcopy);
+    t_free(tmp);
   }
 }
 
-void bignum_isqrt(struct bn *a, struct bn* b)
+void bignum_isqrt(_TPtr<_T_bn> a, _TPtr<_T_bn> b)
 {
   require(a, "a is null");
   require(b, "b is null");
 
-  struct bn low, high, mid, tmp;
+  _TPtr<_T_bn> low = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  _TPtr<_T_bn> high = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  _TPtr<_T_bn> mid = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  _TPtr<_T_bn> tmp =  (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+//memset these to 0
+t_memset(low, 0, sizeof(_T_bn));
+t_memset(high, 0, sizeof(_T_bn));
+t_memset(mid, 0, sizeof(_T_bn));
+t_memset(tmp, 0, sizeof(_T_bn));
 
-  bignum_init(&low);
-  bignum_assign(&high, a);
-  bignum_rshift(&high, &mid, 1);
-  bignum_inc(&mid);
+  bignum_init(low);
+  bignum_assign(high, a);
+  bignum_rshift(high, mid, 1);
+  bignum_inc(mid);
 
-  while (bignum_cmp(&high, &low) > 0) 
+  while (bignum_cmp(high, low) > 0)
   {
-    bignum_mul(&mid, &mid, &tmp);
-    if (bignum_cmp(&tmp, a) > 0) 
+    bignum_mul(mid, mid, tmp);
+    if (bignum_cmp(tmp, a) > 0)
     {
-      bignum_assign(&high, &mid);
-      bignum_dec(&high);
+      bignum_assign(high, mid);
+      bignum_dec(high);
     }
     else 
     {
-      bignum_assign(&low, &mid);
+      bignum_assign(low, mid);
     }
-    bignum_sub(&high,&low,&mid);
-    _rshift_one_bit(&mid);
-    bignum_add(&low,&mid,&mid);
-    bignum_inc(&mid);
+    bignum_sub(high,low,mid);
+    _rshift_one_bit(mid);
+    bignum_add(low,mid,mid);
+    bignum_inc(mid);
   }
-  bignum_assign(b,&low);
+  bignum_assign(b,low);
+  t_free(low->array);
+    t_free(high->array);
+    t_free(mid->array);
+    t_free(tmp->array);
+  t_free(low); t_free(high);t_free(mid);t_free(tmp);
+
 }
 
 
-void bignum_assign(struct bn* dst, struct bn* src)
+void bignum_assign(_TPtr<_T_bn> dst, _TPtr<_T_bn> src)
 {
   require(dst, "dst is null");
   require(src, "src is null");
 
+  //since we are dealing with heap pointer as member instead of array, we need to check for NULL and allocate
+  if (dst->array == NULL)
+  {
+      dst->array = (_TPtr<uint32_t>)t_malloc(BN_ARRAY_SIZE*sizeof(uint32_t));
+  }
   int i;
   for (i = 0; i < BN_ARRAY_SIZE; ++i)
   {
@@ -591,7 +658,7 @@ void bignum_assign(struct bn* dst, struct bn* src)
 
 
 /* Private / Static functions. */
-static void _rshift_word(struct bn* a, int nwords)
+static void _rshift_word(_TPtr<_T_bn> a, int nwords)
 {
   /* Naive method: */
   require(a, "a is null");
@@ -618,7 +685,7 @@ static void _rshift_word(struct bn* a, int nwords)
 }
 
 
-static void _lshift_word(struct bn* a, int nwords)
+static void _lshift_word(_TPtr<_T_bn> a, int nwords)
 {
   require(a, "a is null");
   require(nwords >= 0, "no negative shifts");
@@ -637,7 +704,7 @@ static void _lshift_word(struct bn* a, int nwords)
 }
 
 
-static void _lshift_one_bit(struct bn* a)
+static void _lshift_one_bit(_TPtr<_T_bn> a)
 {
   require(a, "a is null");
 
@@ -650,7 +717,7 @@ static void _lshift_one_bit(struct bn* a)
 }
 
 
-static void _rshift_one_bit(struct bn* a)
+static void _rshift_one_bit(_TPtr<_T_bn> a)
 {
   require(a, "a is null");
 
