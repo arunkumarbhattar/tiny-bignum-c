@@ -74,10 +74,12 @@ int main()
 
   bignum_from_int(num, 100);
   factorial(num, result);
-  bignum_to_string(result, buf, sizeof(buf));
-  printf("factorial(100) using bignum = %s\n", buf);
+  _TPtr<char> _T_buf = StaticUncheckedToTStrAdaptor(buf, sizeof(buf));
+  bignum_to_string(result, _T_buf, sizeof(buf));
+  t_printf("factorial(100) using bignum = %s\n", _T_buf);
   t_free(num);
   t_free(result);
+  t_free(_T_buf);
   return 0;
 }
 

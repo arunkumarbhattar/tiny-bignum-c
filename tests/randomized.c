@@ -79,12 +79,14 @@ int main(int argc, char** argv)
   if (!cmp_result)
   {
     char buf[8192];
-    bignum_to_string(res, buf, sizeof(buf));
-    printf("\ngot %s\n", buf);
+    _TPtr<char>_T_buf = StaticUncheckedToTStrAdaptor(buf, sizeof(buf));
+    bignum_to_string(res, _T_buf, sizeof(buf));
+    printf("\ngot %s\n", _T_buf);
     printf(" a  = %d \n", bignum_to_int(a));
     printf(" b  = %d \n", bignum_to_int(b));
     printf("res = %d \n", bignum_to_int(res));
     printf("\n");
+    t_free(_T_buf);
     return 1;
   }
 

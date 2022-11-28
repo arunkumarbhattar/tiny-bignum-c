@@ -258,15 +258,18 @@ int main()
     }
     else
     {
-      bignum_to_string(sa, buf, sizeof(buf));
+      //marshalling required here  -->
+      _TPtr<char> _T_buf = StaticUncheckedToTStrAdaptor(buf, sizeof(buf));
+      bignum_to_string(sa, _T_buf, sizeof(buf));
       printf("    a = %s \n", buf);
-      bignum_to_string(sb, buf, sizeof(buf));
+      bignum_to_string(sb, _T_buf, sizeof(buf));
       printf("    b = %s \n", buf);
-      bignum_to_string(sc, buf, sizeof(buf));
+      bignum_to_string(sc, _T_buf, sizeof(buf));
       printf("    c = %s \n", buf);
-      bignum_to_string(sd, buf, sizeof(buf));
+      bignum_to_string(sd, _T_buf, sizeof(buf));
       printf("    d = %s \n", buf);
       printf("\n");
+      t_free(_T_buf);
     }
   }
 

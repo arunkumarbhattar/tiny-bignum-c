@@ -127,40 +127,11 @@ void bignum_from_string(_TPtr<_T_bn> n, char* str, int nbytes)
   }
 }
 
+//we're finna gon move this to the sandbox
 
-void bignum_to_string(_TPtr<_T_bn> n, char* str, int nbytes)
+_Tainted void bignum_to_string(_TPtr<_T_bn> n, _TPtr<char> str, int nbytes)
 {
-  require(n, "n is null");
-  require(str, "str is null");
-  require(nbytes > 0, "nbytes must be positive");
-  require((nbytes & 1) == 0, "string format must be in hex -> equal number of bytes");
-
-  int j = BN_ARRAY_SIZE - 1; /* index into array - reading "MSB" first -> big-endian */
-  int i = 0;                 /* index into string representation. */
-
-  /* reading last array-element "MSB" first -> big endian */
-  while ((j >= 0) && (nbytes > (i + 1)))
-  {
-    t_sprintf(&str[i], SPRINTF_FORMAT_STR, n->array[j]);
-    i += (2 * WORD_SIZE); /* step WORD_SIZE hex-byte(s) forward in the string. */
-    j -= 1;               /* step one element back in the array. */
-  }
-
-  /* Count leading zeros: */
-  j = 0;
-  while (str[j] == '0')
-  {
-    j += 1;
-  }
- 
-  /* Move string j places ahead, effectively skipping leading zeros */ 
-  for (i = 0; i < (nbytes - j); ++i)
-  {
-    str[i] = str[i + j];
-  }
-
-  /* Zero-terminate string */
-  str[i] = 0;
+    return w2c_bignum_to_string(c_fetch_sandbox_address(), (int)n, (int)str, nbytes);
 }
 
 

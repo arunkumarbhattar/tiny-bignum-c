@@ -25,6 +25,7 @@ There may well be room for performance-optimizations and improvements.
 #include <stdlib_tainted.h>
 #include <string_tainted.h>
 #include <stdio_tainted.h>
+#include <checkcbox_extensions.h>
 /* This macro defines the word size in bytes of the array that constitues the big-number data structure. */
 #ifndef WORD_SIZE
   #define WORD_SIZE 4
@@ -73,6 +74,7 @@ There may well be room for performance-optimizations and improvements.
 /* Custom assert macro - easy to disable */
 #define require(p, msg) assert(p && msg)
 
+_TLIB void w2c_bignum_to_string(void*, unsigned int, unsigned int, int);
 
 /* Data-holding structure: array of DTYPEs */
 typedef Tstruct bn
@@ -92,7 +94,7 @@ void bignum_init(_TPtr<_T_bn> n);
 void bignum_from_int(_TPtr<_T_bn> n, DTYPE_TMP i);
 int  bignum_to_int(_TPtr<_T_bn> n);
 void bignum_from_string(_TPtr<_T_bn> n, char* str, int nbytes);
-void bignum_to_string(_TPtr<_T_bn> n, char* str, int maxsize);
+_Tainted void bignum_to_string(_TPtr<_T_bn> n, _TPtr<char> str, int maxsize);
 
 /* Basic arithmetic operations: */
 void bignum_add(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c); /* c = a + b */

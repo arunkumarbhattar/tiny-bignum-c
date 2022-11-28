@@ -83,20 +83,29 @@ int main()
 
   printf("Verifying to_string function.\n");
 
-  bignum_to_string(sa, sabuf, sizeof(sabuf));
-  bignum_to_string(sb, sbbuf, sizeof(sbbuf));
-  bignum_to_string(sc, scbuf, sizeof(scbuf));
-  bignum_to_string(sd, sdbuf, sizeof(sdbuf));
+  _TPtr<char> _T_sabuf = StaticUncheckedToTStrAdaptor(sabuf, sizeof(sabuf));
+    _TPtr<char> _T_sbbuf = StaticUncheckedToTStrAdaptor(sbbuf, sizeof(sbbuf));
+    _TPtr<char> _T_scbuf = StaticUncheckedToTStrAdaptor(scbuf, sizeof(scbuf));
+    _TPtr<char> _T_sdbuf = StaticUncheckedToTStrAdaptor(sdbuf, sizeof(sdbuf));
+    _TPtr<char> _T_iabuf = StaticUncheckedToTStrAdaptor(iabuf, sizeof(iabuf));
+    _TPtr<char> _T_ibbuf = StaticUncheckedToTStrAdaptor(ibbuf, sizeof(ibbuf));
+    _TPtr<char> _T_icbuf = StaticUncheckedToTStrAdaptor(icbuf, sizeof(icbuf));
+    _TPtr<char> _T_idbuf = StaticUncheckedToTStrAdaptor(idbuf, sizeof(idbuf));
 
-  bignum_to_string(ia, iabuf, sizeof(iabuf));
-  bignum_to_string(ib, ibbuf, sizeof(ibbuf));
-  bignum_to_string(ic, icbuf, sizeof(icbuf));
-  bignum_to_string(id, idbuf, sizeof(idbuf));
+  bignum_to_string(sa, _T_sabuf, sizeof(sabuf));
+  bignum_to_string(sb, _T_sbbuf, sizeof(sbbuf));
+  bignum_to_string(sc, _T_scbuf, sizeof(scbuf));
+  bignum_to_string(sd, _T_sdbuf, sizeof(sdbuf));
 
-  assert(strcmp(sabuf, iabuf) == 0);
-  assert(strcmp(sbbuf, ibbuf) == 0);
-  assert(strcmp(scbuf, icbuf) == 0);
-  assert(strcmp(sdbuf, idbuf) == 0);
+  bignum_to_string(ia, _T_iabuf, sizeof(iabuf));
+  bignum_to_string(ib, _T_ibbuf, sizeof(ibbuf));
+  bignum_to_string(ic, _T_icbuf, sizeof(icbuf));
+  bignum_to_string(id, _T_idbuf, sizeof(idbuf));
+
+  assert(t_strcmp(_T_sabuf, _T_iabuf) == 0);
+  assert(t_strcmp(_T_sbbuf, _T_ibbuf) == 0);
+  assert(t_strcmp(_T_scbuf, _T_icbuf) == 0);
+  assert(t_strcmp(_T_sdbuf, _T_idbuf) == 0);
 
   printf("Verifying increment + decrement functions.\n");
 
@@ -165,7 +174,14 @@ int main()
     t_free(ib);
     t_free(ic);
     t_free(id);
-
+    t_free(_T_sabuf);
+    t_free(_T_sbbuf);
+    t_free(_T_scbuf);
+    t_free(_T_sdbuf);
+    t_free(_T_iabuf);
+    t_free(_T_ibbuf);
+    t_free(_T_icbuf);
+    t_free(_T_idbuf);
   return 0;
 }
 
