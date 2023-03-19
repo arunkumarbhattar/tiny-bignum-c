@@ -27,10 +27,10 @@ int main(int argc, char** argv)
 */
 
   _TPtr<_T_bn> a = NULL, b = NULL, c = NULL, res = NULL;
-  a = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-  b = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-  c = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-  res = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  a = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+  b = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+  c = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+  res = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
 
   bignum_init(a);
   bignum_init(b);
@@ -41,8 +41,8 @@ int main(int argc, char** argv)
   bignum_from_string(c, argv[4], strlen(argv[4]));
 
   _TPtr<_T_bn> a_before = NULL, b_before = NULL;
-  a_before = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-  b_before = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  a_before = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+  b_before = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
   bignum_assign(a_before, a);
   bignum_assign(b_before, b);
 
@@ -86,19 +86,19 @@ int main(int argc, char** argv)
     printf(" b  = %d \n", bignum_to_int(b));
     printf("res = %d \n", bignum_to_int(res));
     printf("\n");
-    t_free(_T_buf);
+    __free__(_T_buf);
     return 1;
   }
 
   assert(bignum_cmp(a_before, a) == EQUAL);
   assert(bignum_cmp(b_before, b) == EQUAL);
 
-    t_free(a);
-    t_free(b);
-    t_free(c);
-    t_free(res);
-    t_free(a_before);
-    t_free(b_before);
+    __free__(a);
+    __free__(b);
+    __free__(c);
+    __free__(res);
+    __free__(a_before);
+    __free__(b_before);
 
   return 0;
 }

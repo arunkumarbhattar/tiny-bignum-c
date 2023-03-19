@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "bn.h"
-
+#include <time.h>
 
 /* For table-defined list of tests */
 struct test
@@ -188,10 +188,10 @@ const int ntests = sizeof(oracle) / sizeof(*oracle);
 int main()
 {
   _TPtr<_T_bn> sa = NULL, sb = NULL, sc = NULL, sd = NULL;
-  sa = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-  sb = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-  sc = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-  sd = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+  sa = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+  sb = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+  sc = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+  sd = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
 
   uint32_t ia, ib, ic;
   char op;
@@ -202,6 +202,11 @@ int main()
   printf("\nRunning \"golden\" tests (parsed using from_int):\n\n");
 
   int i;
+  //marshalling required here  -->
+  _TPtr<char> _T_buf = StaticUncheckedToTStrAdaptor(buf, sizeof(buf));
+  clock_t start, end;
+  double cpu_time_used = 0.0;
+  start = clock();
   for (i = 0; i < ntests; ++i)
   {
     /* Copy operator + operands from oracle */
@@ -258,8 +263,6 @@ int main()
     }
     else
     {
-      //marshalling required here  -->
-      _TPtr<char> _T_buf = StaticUncheckedToTStrAdaptor(buf, sizeof(buf));
       bignum_to_string(sa, _T_buf, sizeof(buf));
       printf("    a = %s \n", buf);
       bignum_to_string(sb, _T_buf, sizeof(buf));
@@ -269,22 +272,23 @@ int main()
       bignum_to_string(sd, _T_buf, sizeof(buf));
       printf("    d = %s \n", buf);
       printf("\n");
-      t_free(_T_buf);
+      __free__(_T_buf);
     }
   }
-
-  printf("\n%d/%d tests successful.\n", npassed, ntests);
+  end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+  printf("\n%d/%d tests successful.\n, taking total time %f", npassed, ntests, cpu_time_used);
 
 
   printf("\n");
-t_free(sa->array);
-t_free(sb->array);
-t_free(sc->array);
-t_free(sd->array);
-  t_free(sa);
-    t_free(sb);
-    t_free(sc);
-    t_free(sd);
+__free__(sa->array);
+__free__(sb->array);
+__free__(sc->array);
+__free__(sd->array);
+  __free__(sa);
+    __free__(sb);
+    __free__(sc);
+    __free__(sd);
   return (ntests - npassed); /* 0 if all tests passed */
 }
 

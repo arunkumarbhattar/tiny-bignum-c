@@ -34,6 +34,16 @@ There may well be room for performance-optimizations and improvements.
 /* Size of big-numbers in bytes */
 #define BN_ARRAY_SIZE    (128 / WORD_SIZE)
 
+#ifdef WASM_SBX
+#define __malloc__(S) t_malloc(S)
+#define __free__(S) t_free(S)
+#elif HEAP_SBX
+#define __malloc__(S) hoard_malloc(S)
+#define __free__(S) hoard_free(S)
+#else
+#define __malloc__(S) malloc(S)
+#define __free__(S) free(S)
+#endif
 
 /* Here comes the compile-time specialization for how large the underlying array size should be. */
 /* The choices are 1, 2 and 4 bytes in size with uint32, uint64 for WORD_SIZE==4, as temporary. */
@@ -77,7 +87,7 @@ There may well be room for performance-optimizations and improvements.
 _TLIB void w2c_bignum_to_string(void*, unsigned int, unsigned int, int);
 
 /* Data-holding structure: array of DTYPEs */
-typedef Tstruct bn
+_Tainted typedef Tstruct bn
 {
   _TPtr<DTYPE> array;
 }_T_bn;

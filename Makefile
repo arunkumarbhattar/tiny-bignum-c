@@ -1,8 +1,8 @@
 CC     := /home/arun/Desktop/CheckCBox_Compiler/llvm/cmake-build-debug/bin/clang
-MACROS := 
-CFLAGS := -I. -Wundef -Wall -Wextra -fw2c_sbx -ferror-limit=452935 -g $(MACROS)
-LDFLAGS := -ldl -lstdc++ -lSBX_CON_LIB -lisc_lib_final
-LIBS := -L/home/arun/Desktop/tiny-bignum-c/Checkcbox_LIBS
+MACROS := -DHEAP_SBX
+CFLAGS := -g -I. -Wundef -Wall -fheapsbx -Wextra $(MACROS)
+LDFLAGS := -ldl -lstdc++ -lhoard -lprofile -lSBX_CON_LIB  
+LIBS := -L/home/arun/Desktop/tiny-bignum-c/NOOP_SBX -L/home/arun/Desktop/tiny-bignum-c/HoardLib
 
 all:
 	@$(CC) $(CFLAGS) bn.c ./tests/golden.c      -o ./build/test_golden $(LIBS) $(LDFLAGS)

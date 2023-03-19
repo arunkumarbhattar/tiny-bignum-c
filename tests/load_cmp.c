@@ -10,7 +10,7 @@
 #include <string.h>
 #include <assert.h>
 #include "bn.h"
-
+#include <time.h>
 
 
 int main()
@@ -27,16 +27,18 @@ int main()
   _TPtr<_T_bn> sa = NULL, sb = NULL, sc = NULL, sd = NULL, se = NULL;
   _TPtr<_T_bn> ia = NULL, ib = NULL, ic = NULL, id = NULL;
 
-  sa = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-    sb = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-    sc = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-    sd = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-    se = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-    ia = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-    ib = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-    ic = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-    id = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-
+    sa = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+    sb = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+    sc = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+    sd = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+    se = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+    ia = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+    ib = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+    ic = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+    id = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+    clock_t start, end;
+    double cpu_time_used;
+    start = clock();
   bignum_init(sa);
   bignum_init(sb);
   bignum_init(sc);
@@ -163,25 +165,29 @@ int main()
   assert(bignum_cmp(sc, sd) == EQUAL);
   assert(bignum_cmp(sc, se) == EQUAL);
 
+  end = clock();
+  cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+  printf("\nTests successful. With total time taken --> %f\n\n", cpu_time_used);
 
-  printf("\nTests successful.\n\n");
+  __free__(sa);
+    __free__(sb);
+    __free__(sc);
+    __free__(sd);__free__(se);
+    __free__(ia);
+    __free__(ib);
+    __free__(ic);
+    __free__(id);
+#ifndef NOOP_SBX
+    __free__(_T_sabuf);
+    __free__(_T_sbbuf);
+    __free__(_T_scbuf);
+    __free__(_T_sdbuf);
+    __free__(_T_iabuf);
+    __free__(_T_ibbuf);
+    __free__(_T_icbuf);
+    __free__(_T_idbuf);
+#endif
 
-  t_free(sa);
-    t_free(sb);
-    t_free(sc);
-    t_free(sd);t_free(se);
-    t_free(ia);
-    t_free(ib);
-    t_free(ic);
-    t_free(id);
-    t_free(_T_sabuf);
-    t_free(_T_sbbuf);
-    t_free(_T_scbuf);
-    t_free(_T_sdbuf);
-    t_free(_T_iabuf);
-    t_free(_T_ibbuf);
-    t_free(_T_icbuf);
-    t_free(_T_idbuf);
   return 0;
 }
 

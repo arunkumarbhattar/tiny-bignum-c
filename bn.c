@@ -31,19 +31,55 @@ static void _rshift_one_bit(_TPtr<_T_bn> a);
 static void _lshift_word(_TPtr<_T_bn> a, int nwords);
 static void _rshift_word(_TPtr<_T_bn> a, int nwords);
 
+#ifdef WASM_SBX
+typedef _Decoy Tstruct Spl_bn
+{
+    unsigned int name;
+    unsigned int car;
+unsigned int array;
+}Spl_T_bn;
 
+//dummy val
+Spl_T_bn Spl_bn_val;
 
+//dummy prototype
+Spl_T_bn Dummy_bn(void);
+Spl_T_bn Dummy_bn(void){
+    return Spl_bn_val;
+}
+#endif
 /* Public / Exported functions. */
 void bignum_init(_TPtr<_T_bn> n)
 {
+#ifndef NOOP_SBX
     if (n == NULL) {
-        n = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+        n = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+        t_memset(n, 0, sizeof(_T_bn));
     }
+#else
+    if (n == NULL) {
+        _T_bn simple;
+#pragma TAINTED_SCOPE push
+#pragma TAINTED_SCOPE on
+        n = (_TPtr<_T_bn>)&simple;
+#pragma TAINTED_SCOPE pop
+    }
+#endif
   require(n, "n is null");
   //sometimes you may  pass the same structure to bignum_init
   //hence check for null before you init
+#ifndef NOOP_SBX
   if (n->array == NULL)
-    n->array = (_TPtr<DTYPE>)t_malloc(BN_ARRAY_SIZE * sizeof(DTYPE));
+    n->array = (_TPtr<DTYPE>)__malloc__(BN_ARRAY_SIZE * sizeof(DTYPE));
+#else
+    if (n->array == NULL) {
+        _T_bn simple[BN_ARRAY_SIZE];
+#pragma TAINTED_SCOPE push
+#pragma TAINTED_SCOPE on
+        n->array = (_TPtr<DTYPE>)&simple;
+#pragma TAINTED_SCOPE pop
+    }
+#endif
   int i;
   for (i = 0; i < BN_ARRAY_SIZE; ++i)
   {
@@ -131,7 +167,37 @@ void bignum_from_string(_TPtr<_T_bn> n, char* str, int nbytes)
 
 _Tainted void bignum_to_string(_TPtr<_T_bn> n, _TPtr<char> str, int nbytes)
 {
-    return w2c_bignum_to_string(c_fetch_sandbox_address(), (int)n, (int)str, nbytes);
+#ifdef WASM_SBX
+    w2c_bignum_to_string(c_fetch_sandbox_address(), (int)n, (int)str, nbytes);
+#else
+
+    int j = BN_ARRAY_SIZE - 1; /* index into array - reading "MSB" first -> big-endian */
+    int i = 0;                 /* index into string representation. */
+
+    /* reading last array-element "MSB" first -> big endian */
+    while ((j >= 0) && (nbytes > (i + 1)))
+    {
+        t_sprintf(&str[i], SPRINTF_FORMAT_STR, n->array[j]);
+        i += (2 * WORD_SIZE); /* step WORD_SIZE hex-byte(s) forward in the string. */
+        j -= 1;               /* step one element back in the array. */
+    }
+
+    /* Count leading zeros: */
+    j = 0;
+    while (str[j] == '0')
+    {
+        j += 1;
+    }
+
+    /* Move string j places ahead, effectively skipping leading zeros */
+    for (i = 0; i < (nbytes - j); ++i)
+    {
+        str[i] = str[i + j];
+    }
+
+    /* Zero-terminate string */
+    str[i] = 0;
+#endif
 }
 
 
@@ -227,12 +293,25 @@ void bignum_mul(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c)
 
   _TPtr<_T_bn> row = NULL; //moving from static memory to heap --> SLOW!
   _TPtr<_T_bn> tmp = NULL;
-  row = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-  tmp = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+#ifndef NOOP_SBX
+  row = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+  tmp = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
   //memset these both to 0
   t_memset(row, 0, sizeof(_T_bn));
   t_memset(tmp, 0, sizeof(_T_bn));
-
+#else
+  _T_bn _c_row;
+  _T_bn _C_tmp;
+  _T_bn _C_row_array[BN_ARRAY_SIZE];
+  _T_bn _C_tmp_array[BN_ARRAY_SIZE];
+#pragma TAINTED_SCOPE push
+#pragma TAINTED_SCOPE on
+  row = (_TPtr<_T_bn>)&_c_row;
+  tmp = (_TPtr<_T_bn>)&_C_tmp;
+    row->array = (_TPtr<DTYPE>)&_C_row_array;
+    tmp->array = (_TPtr<DTYPE>)&_C_tmp_array;
+#pragma TAINTED_SCOPE pop
+#endif
   int i, j;
 
   bignum_init(c);
@@ -254,10 +333,12 @@ void bignum_mul(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c)
     }
     bignum_add(c, row, c);
   }
-  t_free(row->array);
-  t_free(tmp->array);
-  t_free(row);
-  t_free(tmp);
+#ifndef NOOP_SBX
+  __free__(row->array);
+  __free__(tmp->array);
+  __free__(row);
+  __free__(tmp);
+#endif
 }
 
 
@@ -271,13 +352,31 @@ void bignum_div(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c)
   _TPtr<_T_bn> denom = NULL;
   _TPtr<_T_bn> tmp = NULL;
 
-  current = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-  denom = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-  tmp = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+#ifndef NOOP_SBX
+  current = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+  denom = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+  tmp = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
   //memset these to zero
   t_memset(current, 0, sizeof(_T_bn));
   t_memset(denom, 0, sizeof(_T_bn));
   t_memset(tmp, 0, sizeof(_T_bn));
+#else
+    _T_bn _c_current;
+    _T_bn _C_denom;
+    _T_bn _C_tmp;
+    _T_bn _C_current_array[BN_ARRAY_SIZE];
+    _T_bn _C_denom_array[BN_ARRAY_SIZE];
+    _T_bn _C_tmp_array[BN_ARRAY_SIZE];
+#pragma TAINTED_SCOPE push
+#pragma TAINTED_SCOPE on
+    current = (_TPtr<_T_bn>)&_c_current;
+    denom = (_TPtr<_T_bn>)&_C_denom;
+    tmp = (_TPtr<_T_bn>)&_C_tmp;
+    current->array = (_TPtr<DTYPE>)&_C_current_array;
+    denom->array = (_TPtr<DTYPE>)&_C_denom_array;
+    tmp->array = (_TPtr<DTYPE>)&_C_tmp_array;
+#pragma TAINTED_SCOPE pop
+#endif
   bignum_from_int(current, 1);               // int current = 1;
   bignum_assign(denom, b);                   // denom = b
   bignum_assign(tmp, a);                     // tmp   = a
@@ -312,10 +411,12 @@ void bignum_div(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c)
     _rshift_one_bit(current);                //   current >>= 1;
     _rshift_one_bit(denom);                  //   denom >>= 1;
   }
-  t_free(current->array); t_free(denom->array);t_free(tmp->array);
-  t_free(current);
-  t_free(denom);
-  t_free(tmp);
+#ifndef NOOP_SBX
+  __free__(current->array); __free__(denom->array);__free__(tmp->array);
+  __free__(current);
+  __free__(denom);
+  __free__(tmp);
+#endif
 }
 
 
@@ -386,13 +487,23 @@ void bignum_mod(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c)
   require(c, "c is null");
 
   _TPtr<_T_bn> tmp = NULL;
-
-  tmp = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+#ifndef NOOP_SBX
+  tmp = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
     //memset this to zero
     t_memset(tmp, 0, sizeof(_T_bn));
+#else
+    _T_bn _C_tmp;
+    _T_bn _C_tmp_array[BN_ARRAY_SIZE];
+#pragma TAINTED_SCOPE push
+#pragma TAINTED_SCOPE on
+    tmp = (_TPtr<_T_bn>)&_C_tmp;
+    tmp->array = (_TPtr<DTYPE>)&_C_tmp_array;
+#pragma TAINTED_SCOPE pop
+#endif
+
   bignum_divmod(a,b,tmp,c);
-    t_free(tmp->array);
-  t_free(tmp);
+    __free__(tmp->array);
+  __free__(tmp);
 }
 
 void bignum_divmod(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c, _TPtr<_T_bn> d)
@@ -409,10 +520,18 @@ void bignum_divmod(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c, _TPtr<_T_bn> 
   require(a, "a is null");
   require(b, "b is null");
   require(c, "c is null");
-
-  _TPtr<_T_bn> tmp = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+#ifndef NOOP_SBX
+  _TPtr<_T_bn> tmp = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
   //memset this to 0
   t_memset(tmp, 0, sizeof(_T_bn));
+#else
+    _T_bn _C_tmp;
+#pragma TAINTED_SCOPE push
+#pragma TAINTED_SCOPE on
+    _TPtr<_T_bn> tmp = (_TPtr<_T_bn>)&_C_tmp;
+#pragma TAINTED_SCOPE pop
+#endif
+
   /* c = (a / b) */
   bignum_div(a, b, c);
 
@@ -422,8 +541,8 @@ void bignum_divmod(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c, _TPtr<_T_bn> 
   /* c = a - tmp */
   bignum_sub(a, tmp, d);
 
-        t_free(tmp->array);
-  t_free(tmp);
+        __free__(tmp->array);
+  __free__(tmp);
 }
 
 
@@ -520,9 +639,18 @@ void bignum_pow(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c)
   require(c, "c is null");
 
   _TPtr<_T_bn> tmp = NULL;
-  tmp = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+#ifndef NOOP_SBX
+  tmp = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
     //memset this to 0
     t_memset(tmp, 0, sizeof(_T_bn));
+#else
+    _T_bn _C_tmp;
+#pragma TAINTED_SCOPE push
+#pragma TAINTED_SCOPE on
+    tmp = (_TPtr<_T_bn>)&_C_tmp;
+#pragma TAINTED_SCOPE pop
+#endif
+
   bignum_init(c);
 
   if (bignum_cmp(b, c) == EQUAL)
@@ -532,9 +660,18 @@ void bignum_pow(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c)
   }
   else
   {
-    _TPtr<_T_bn> bcopy = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+#ifndef NOOP_SBX
+    _TPtr<_T_bn> bcopy = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
     //memset this to 0
     t_memset(bcopy, 0, sizeof(_T_bn));
+#else
+    _T_bn _C_bcopy;
+#pragma TAINTED_SCOPE push
+#pragma TAINTED_SCOPE on
+    _TPtr<_T_bn> bcopy = (_TPtr<_T_bn>)&_C_bcopy;
+#pragma TAINTED_SCOPE pop
+#endif
+
     bignum_assign(bcopy, b);
 
     /* Copy a -> tmp */
@@ -556,10 +693,10 @@ void bignum_pow(_TPtr<_T_bn> a, _TPtr<_T_bn> b, _TPtr<_T_bn> c)
 
     /* c = tmp */
     bignum_assign(c, tmp);
-        t_free(bcopy->array);
-        t_free(tmp->array);
-    t_free(bcopy);
-    t_free(tmp);
+        __free__(bcopy->array);
+        __free__(tmp->array);
+    __free__(bcopy);
+    __free__(tmp);
   }
 }
 
@@ -568,15 +705,29 @@ void bignum_isqrt(_TPtr<_T_bn> a, _TPtr<_T_bn> b)
   require(a, "a is null");
   require(b, "b is null");
 
-  _TPtr<_T_bn> low = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-  _TPtr<_T_bn> high = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-  _TPtr<_T_bn> mid = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-  _TPtr<_T_bn> tmp =  (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+#ifndef NOOP_SBX
+  _TPtr<_T_bn> low = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+  _TPtr<_T_bn> high = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+  _TPtr<_T_bn> mid = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+  _TPtr<_T_bn> tmp =  (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
 //memset these to 0
 t_memset(low, 0, sizeof(_T_bn));
 t_memset(high, 0, sizeof(_T_bn));
 t_memset(mid, 0, sizeof(_T_bn));
 t_memset(tmp, 0, sizeof(_T_bn));
+#else
+    _T_bn _C_low;
+    _T_bn _C_high;
+    _T_bn _C_mid;
+    _T_bn _C_tmp;
+#pragma TAINTED_SCOPE push
+#pragma TAINTED_SCOPE on
+    _TPtr<_T_bn> low = (_TPtr<_T_bn>)&_C_low;
+    _TPtr<_T_bn> high = (_TPtr<_T_bn>)&_C_high;
+    _TPtr<_T_bn> mid = (_TPtr<_T_bn>)&_C_mid;
+    _TPtr<_T_bn> tmp = (_TPtr<_T_bn>)&_C_tmp;
+#pragma TAINTED_SCOPE pop
+#endif
 
   bignum_init(low);
   bignum_assign(high, a);
@@ -601,11 +752,11 @@ t_memset(tmp, 0, sizeof(_T_bn));
     bignum_inc(mid);
   }
   bignum_assign(b,low);
-  t_free(low->array);
-    t_free(high->array);
-    t_free(mid->array);
-    t_free(tmp->array);
-  t_free(low); t_free(high);t_free(mid);t_free(tmp);
+  __free__(low->array);
+    __free__(high->array);
+    __free__(mid->array);
+    __free__(tmp->array);
+  __free__(low); __free__(high);__free__(mid);__free__(tmp);
 
 }
 
@@ -618,7 +769,15 @@ void bignum_assign(_TPtr<_T_bn> dst, _TPtr<_T_bn> src)
   //since we are dealing with heap pointer as member instead of array, we need to check for NULL and allocate
   if (dst->array == NULL)
   {
-      dst->array = (_TPtr<uint32_t>)t_malloc(BN_ARRAY_SIZE*sizeof(uint32_t));
+#ifndef NOOP_SBX
+      dst->array = (_TPtr<uint32_t>)__malloc__(BN_ARRAY_SIZE*sizeof(uint32_t));
+#else
+      _T_bn _C_dst_array;
+#pragma TAINTED_SCOPE push
+#pragma TAINTED_SCOPE on
+      dst->array = (_TPtr<uint32_t>)&_C_dst_array;
+#pragma TAINTED_SCOPE pop
+#endif
   }
   int i;
   for (i = 0; i < BN_ARRAY_SIZE; ++i)

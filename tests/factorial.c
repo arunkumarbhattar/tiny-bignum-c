@@ -31,14 +31,24 @@
 
 #include <stdio.h>
 #include "bn.h"
-
+#include <time.h>
 
 
 void factorial(_TPtr<_T_bn> n, _TPtr<_T_bn> res)
 {
   _TPtr<_T_bn> tmp = NULL;
-  tmp = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-
+#ifndef NOOP_SBX
+  tmp = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+  t_memset(tmp, 0, sizeof(_T_bn));
+#else
+  _T_bn _c_tmp;
+  _T_bn _c_tmp_array[BN_ARRAY_SIZE];
+#pragma TAINTED_SCOPE push
+#pragma TAINTED_SCOPE on
+    tmp = (_TPtr<_T_bn>)&_c_tmp;
+    tmp->array = (_TPtr<DTYPE>)&_c_tmp_array;
+#pragma TAINTED_SCOPE pop
+#endif
   /* Copy n -> tmp */
   bignum_assign(tmp, n);
 
@@ -60,7 +70,9 @@ void factorial(_TPtr<_T_bn> n, _TPtr<_T_bn> res)
 
   /* res = tmp */
   bignum_assign(res, tmp);
-  t_free(tmp);
+#ifndef NOOP_SBX
+  __free__(tmp);
+#endif
 }
 
 
@@ -68,18 +80,43 @@ int main()
 {
   _TPtr<_T_bn> num = NULL;
   _TPtr<_T_bn> result = NULL;
-  num = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
-  result = (_TPtr<_T_bn>)t_malloc(sizeof(_T_bn));
+#ifndef NOOP_SBX
+  num = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+  t_memset(num, 0, sizeof(_T_bn));
+  result = (_TPtr<_T_bn>)__malloc__(sizeof(_T_bn));
+  t_memset(result, 0, sizeof(_T_bn));
+#else
+  _T_bn _c_num;
+  _T_bn _c_result;
+  _T_bn _c_num_array[BN_ARRAY_SIZE];
+  _T_bn _c_result_array[BN_ARRAY_SIZE];
+#pragma TAINTED_SCOPE push
+#pragma TAINTED_SCOPE on
+    num = (_TPtr<_T_bn>)&_c_num;
+    result = (_TPtr<_T_bn>)&_c_result;
+    num->array = (_TPtr<DTYPE>)&_c_num_array;
+    result->array = (_TPtr<DTYPE>)&_c_result_array;
+#pragma TAINTED_SCOPE pop
+#endif
   char buf[8192];
-
-  bignum_from_int(num, 100);
-  factorial(num, result);
+  clock_t start, end;
+  double cpu_time_used = 0.0;
   _TPtr<char> _T_buf = StaticUncheckedToTStrAdaptor(buf, sizeof(buf));
-  bignum_to_string(result, _T_buf, sizeof(buf));
-  t_printf("factorial(100) using bignum = %s\n", _T_buf);
-  t_free(num);
-  t_free(result);
-  t_free(_T_buf);
+    //perform this 10 times to get an average
+  start = clock();
+  for (int i = 0; i < 10; i++)
+  {
+      bignum_from_int(num, 100);
+      factorial(num, result);
+      bignum_to_string(result, _T_buf, sizeof(buf));
+  }
+  end = clock();
+  t_printf("10x factorial(100) using bignum = %s\n: Experiment took time %f", _T_buf, ((double) (end - start)) / CLOCKS_PER_SEC);
+#ifndef NOOP_SBX
+  __free__(num);
+  __free__(result);
+  __free__(_T_buf);
+#endif
   return 0;
 }
 
